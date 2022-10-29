@@ -1,6 +1,7 @@
 <launch>
 
     <!-- what config we are going to run (should match folder name) -->
+    <!-- <arg name="verbosity"   default="INFO" /> ALL, DEBUG, INFO, WARNING, ERROR, SILENT -->
     <arg name="verbosity"   default="INFO" /> <!-- ALL, DEBUG, INFO, WARNING, ERROR, SILENT -->
     <arg name="config"      default="euroc_mav" /> <!-- euroc_mav, tum_vi, rpng_aruco -->
     <arg name="config_path" default="$(find ov_msckf)/../config/$(arg config)/estimator_config.yaml" />
@@ -17,13 +18,16 @@
 <!--    <arg name="bag"         default="/datasets/$(arg config)/$(arg dataset).bag" />-->
 
     <!-- saving trajectory path and timing information -->
-    <arg name="dosave"      default="false" />
-    <arg name="dotime"      default="false" />
-    <arg name="path_est"    default="/tmp/traj_estimate.txt" />
-    <arg name="path_time"   default="/tmp/traj_timing.txt" />
+    <arg name="dosave"      default="true" />
+    <arg name="dotime"      default="true" />
+    <!-- <arg name="path_est"    default="/tmp/traj_estimate.txt" />
+    <arg name="path_time"   default="/tmp/traj_timing.txt" /> -->
+    <arg name="path_est"    default="/home/sougato97/catkin_build_ws/logs/open_vins_trajectory/traj_estimate.txt" />
+    <arg name="path_time"   default="/home/sougato97/catkin_build_ws/logs/open_vins_trajectory/traj_timing.txt" />
 
     <!-- if we should viz the groundtruth -->
-    <arg name="dolivetraj"  default="false" />
+    <!-- <arg name="dolivetraj"  default="false" /> -->
+    <arg name="dolivetraj"  default="true" />
     <arg name="path_gt"     default="$(find ov_data)/$(arg config)/$(arg dataset).txt" />
 
 
