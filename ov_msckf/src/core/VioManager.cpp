@@ -47,6 +47,11 @@ using namespace ov_core;
 using namespace ov_type;
 using namespace ov_msckf;
 
+// declaring some variables local to this c++ file
+boost::posix_time::ptime feed_rT1a, track_rT1a, track_rT1b, track_rT1c, do1_rT3, do2_rT3, do3_rT3, do4_rT3,
+do5_rT3, do6_rT3, do7_rT3, do8_rT3;
+int flag = 1;
+
 VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false), thread_init_success(false) {
 
   // Nice startup message
@@ -191,6 +196,7 @@ void VioManager::feed_measurement_simulation(double timestamp, const std::vector
     trackFEATS = trackSIM;
     PRINT_WARNING(RED "[SIM]: casting our tracker to a TrackSIM object!\n" RESET);
   }
+  feed_rT1a = boost::posix_time::microsec_clock::local_time();
 
   // Feed our simulation tracker
   trackSIM->feed_measurement_simulation(timestamp, camids, feats);
@@ -244,6 +250,7 @@ void VioManager::track_image_and_update(const ov_core::CameraData &message_const
   for (size_t i = 0; i < message_const.sensor_ids.size() - 1; i++) {
     assert(message_const.sensor_ids.at(i) != message_const.sensor_ids.at(i + 1));
   }
+  track_rT1a = boost::posix_time::microsec_clock::local_time();
 
   // Downsample if we are downsampling
   ov_core::CameraData message = message_const;
@@ -256,12 +263,14 @@ void VioManager::track_image_and_update(const ov_core::CameraData &message_const
     cv::pyrDown(mask, mask_temp, cv::Size(mask.cols / 2.0, mask.rows / 2.0));
     message.masks.at(i) = mask_temp;
   }
+  track_rT1b = boost::posix_time::microsec_clock::local_time();
 
   // Perform our feature tracking!
   trackFEATS->feed_new_camera(message);
   if (is_initialized_vio) {
     trackDATABASE->append_new_measurements(trackFEATS->get_feature_database());
   }
+  track_rT1c = boost::posix_time::microsec_clock::local_time();
 
   // If the aruco tracker is available, the also pass to it
   // NOTE: binocular tracking for aruco doesn't make sense as we by default have the ids
@@ -312,6 +321,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
                   (message.timestamp - state->_timestamp));
     return;
   }
+  // do_a = boost::posix_time::microsec_clock::local_time();
 
   // Propagate the state forward to the current update time
   // Also augment it with a new clone!
@@ -330,8 +340,9 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
                 std::min(state->_options.max_clone_size, 5));
     return;
   }
+  do1_rT3 = boost::posix_time::microsec_clock::local_time();
 
-  // Return if we where unable to propagate
+  // Return if we were unable to propagate
   if (state->_timestamp != message.timestamp) {
     PRINT_WARNING(RED "[PROP]: Propagator unable to propagate the state forward in time!\n" RESET);
     PRINT_WARNING(RED "[PROP]: It has been %.3f since last time we propagated\n" RESET, message.timestamp - state->_timestamp);
@@ -347,6 +358,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   // We explicitly request features that have not been deleted (used) in another update step
   std::vector<std::shared_ptr<Feature>> feats_lost, feats_marg, feats_slam;
   feats_lost = trackFEATS->get_feature_database()->features_not_containing_newer(state->_timestamp, false, true);
+  do2_rT3 = boost::posix_time::microsec_clock::local_time();
 
   // Don't need to get the oldest features until we reach our max number of clones
   if ((int)state->_clones_IMU.size() > state->_options.max_clone_size || (int)state->_clones_IMU.size() > 5) {
@@ -374,6 +386,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
       it1 = feats_lost.erase(it1);
     }
   }
+  do3_rT3 = boost::posix_time::microsec_clock::local_time(); // maybe important 
 
   // We also need to make sure that the max tracks does not contain any lost features
   // This could happen if the feature was lost in the last frame, but has a measurement at the marg timestep
@@ -386,6 +399,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
       it1++;
     }
   }
+
 
   // Find tracks that have reached max length, these can be made into SLAM features
   std::vector<std::shared_ptr<Feature>> feats_maxtracks;
@@ -407,6 +421,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
       it2++;
     }
   }
+  do4_rT3 = boost::posix_time::microsec_clock::local_time(); // maybe important 
 
   // Count how many aruco tags we have in our state
   int curr_aruco_tags = 0;
@@ -416,6 +431,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
       curr_aruco_tags++;
     it0++;
   }
+  do5_rT3 = boost::posix_time::microsec_clock::local_time();
 
   // Append a new SLAM feature if we have the room to do so
   // Also check that we have waited our delay amount (normally prevents bad first set of slam points)
@@ -431,6 +447,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
       feats_maxtracks.erase(feats_maxtracks.end() - valid_amount, feats_maxtracks.end());
     }
   }
+  do6_rT3 = boost::posix_time::microsec_clock::local_time(); // appending all the slam feature in the array 
 
   // Loop through current SLAM features, we have tracks of them, grab them for this update!
   // Note: if we have a slam feature that has lost tracking, then we should marginalize it out
@@ -456,6 +473,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   // These are ones that where not successfully tracked into the current frame
   // We do *NOT* marginalize out our aruco tags landmarks
   StateHelper::marginalize_slam(state);
+  do7_rT3 = boost::posix_time::microsec_clock::local_time();
 
   // Separate our SLAM features into new ones, and old ones
   std::vector<std::shared_ptr<Feature>> feats_slam_DELAYED, feats_slam_UPDATE;
@@ -471,8 +489,13 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     }
   }
 
+  // ** commented by sougato 
   // Concatenate our MSCKF feature arrays (i.e., ones not being used for slam updates)
-  std::vector<std::shared_ptr<Feature>> featsup_MSCKF = feats_lost;
+
+  do8_rT3 = boost::posix_time::microsec_clock::local_time();
+  std::vector<std::shared_ptr<Feature>> featsup_MSCKF = feats_lost; // if sougato's "if" condition is removed then 
+  // merge this line with the below ones
+  if (flag == 1){
   featsup_MSCKF.insert(featsup_MSCKF.end(), feats_marg.begin(), feats_marg.end());
   featsup_MSCKF.insert(featsup_MSCKF.end(), feats_maxtracks.begin(), feats_maxtracks.end());
 
@@ -499,6 +522,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   if ((int)featsup_MSCKF.size() > state->_options.max_msckf_in_update)
     featsup_MSCKF.erase(featsup_MSCKF.begin(), featsup_MSCKF.end() - state->_options.max_msckf_in_update);
   updaterMSCKF->update(state, featsup_MSCKF);
+  }
   rT4 = boost::posix_time::microsec_clock::local_time();
 
   // Perform SLAM delay init and update
@@ -537,12 +561,14 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     good_features_MSCKF.clear();
   }
 
+  // ** commented by sougato
   // Save all the MSCKF features used in the update
+  if(flag == 1){
   for (auto const &feat : featsup_MSCKF) {
     good_features_MSCKF.push_back(feat->p_FinG);
     feat->to_delete = true;
   }
-
+  }
   //===================================================================================
   // Cleanup, marginalize out what we don't need any more...
   //===================================================================================
@@ -585,15 +611,58 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   double time_total = (rT7 - rT1).total_microseconds() * 1e-6;
 
   // Timing information
-  PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for tracking\n" RESET, time_track);
-  PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for propagation\n" RESET, time_prop);
-  PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for MSCKF update (%d feats)\n" RESET, time_msckf, (int)featsup_MSCKF.size());
-  if (state->_options.max_slam_features > 0) {
-    PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for SLAM update (%d feats)\n" RESET, time_slam_update, (int)state->_features_SLAM.size());
-    PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for SLAM delayed init (%d feats)\n" RESET, time_slam_delay, (int)feats_slam_DELAYED.size());
+  // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for tracking\n" RESET, time_track);
+  // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for propagation\n" RESET, time_prop);
+  // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for MSCKF update (%d feats)\n" RESET, time_msckf, (int)featsup_MSCKF.size());
+  // if (state->_options.max_slam_features > 0) {
+  //   PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for SLAM update (%d feats)\n" RESET, time_slam_update, (int)state->_features_SLAM.size());
+  //   PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for SLAM delayed init (%d feats)\n" RESET, time_slam_delay, (int)feats_slam_DELAYED.size());
+  // }
+  // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for re-tri & marg (%d clones in state)\n" RESET, time_marg, (int)state->_clones_IMU.size());
+  // modified by sougato 
+  std::cout<<std::endl<<"************************"<<"START OF THE CYCLE"<<"************************"<<std::endl;
+  std::cout<<"\n######## START TRACKING ########\n";
+  std::cout<<"["<<time_track<<"]: seconds for tracking\n";
+  // for VioManager::feed_measurement_simulation() exection branch
+  if (feed_rT1a > rT1){
+    std::cout<<"["<<(feed_rT1a - rT1) * 1e-6<<"]: recreate and re-cast the tracker to our simulation tracker\n";
+    std::cout<<"["<<(rT2 - feed_rT1a) * 1e-6<<"]: Feed our simulation tracker\n";  
   }
-  PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for re-tri & marg (%d clones in state)\n" RESET, time_marg, (int)state->_clones_IMU.size());
+  // for VioManager::track_image_and_update() exection branch
+  if (track_rT1a > rT1){
+    std::cout<<"["<<(track_rT1b - track_rT1a) * 1e-6<<"]: downsampling time\n";
+    std::cout<<"["<<(track_rT1c - track_rT1b) * 1e-6<<"]: feature tracking time\n";
+    std::cout<<"["<<(rT2 - track_rT1c) * 1e-6<<"]: aruco tracker time\n";
+  }
+  std::cout<<"######## END OF TRACKING ########\n\n";
 
+  std::cout<<"######## START PROPAGATION ########\n";
+  std::cout<<"["<<time_prop<<"]: seconds for propagation\n";
+  std::cout<<"######## END PROPAGATION ########\n\n";
+
+  std::cout<<"######## START UPDATE ########\n\n";
+  std::cout<<"["<<(do2_rT3 - do1_rT3) * 1e-6<<"]: seconds for getting all the features\n";
+  std::cout<<"["<<(do4_rT3 - do3_rT3) * 1e-6<<"]: seconds for grabbing all maybe SLAM features (tracks that have reached max length)\n";
+  std::cout<<"["<<(do7_rT3 - do5_rT3) * 1e-6<<"]: seconds for getting all the good SLAM features \n";
+  std::cout<<"["<<(do8_rT3-do7_rT3) * 1e-6<<"]: seconds for segregating old and new SLAM features \n";
+  if(flag == 1){
+    std::cout<<"["<<time_msckf<<"]: seconds for INBUILT MSCKF update ("<<(int)featsup_MSCKF.size()<<")\n";
+    std::cout<<"["<<(rT4 - do8_rT3) * 1e-6<<"]: seconds for only MSCKF update ("<<(int)featsup_MSCKF.size()<<")\n";
+  }
+  if (state->_options.max_slam_features > 0) {
+    std::cout<<"["<<time_slam_update<<"]: seconds for SLAM update {new/feats_slam_UPDATE ones goes into this}("<<(int)state->_features_SLAM.size()<<")\n";
+    std::cout<<"["<<time_slam_delay<<"]: seconds for SLAM delayed init {old/feats_slam_DELAYED ones goes into this}("<<(int)feats_slam_DELAYED.size()<<")\n";
+  }
+  std::cout<<"######## END UPDATE ########\n\n";
+
+  std::cout<<"["<<time_marg<<"]: seconds for re-tri\n";
+  std::cout<<"["<<(int)state->_clones_IMU.size() * 1e-6<<"]: seconds for marg (clones in state)\n";
+  std::cout<<"["<<time_total<<"]: seconds for TOTAL TIME\n";
+  std::cout<<std::endl<<"************************"<<"END OF CYCLE"<<"************************"<<std::endl;
+
+
+
+  // cout<<"test"
   std::stringstream ss;
   ss << "[TIME]: " << std::setprecision(4) << time_total << " seconds for total (camera";
   for (const auto &id : message.sensor_ids) {

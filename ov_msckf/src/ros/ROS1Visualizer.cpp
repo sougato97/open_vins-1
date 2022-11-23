@@ -391,7 +391,7 @@ void ROS1Visualizer::callback_inertial(const sensor_msgs::Imu::ConstPtr &msg) {
   std::thread thread([&] {
     // Lock on the queue (prevents new images from appending)
     std::lock_guard<std::mutex> lck(camera_queue_mtx);
-    cout<<"size of the camera_queue is:- "<<camera_queue.size()<<endl;
+    // cout<<"size of the camera_queue is:- "<<camera_queue.size()<<endl;
     // Count how many unique image streams
     std::map<int, bool> unique_cam_ids;
     for (const auto &cam_msg : camera_queue) {
@@ -420,7 +420,7 @@ void ROS1Visualizer::callback_inertial(const sensor_msgs::Imu::ConstPtr &msg) {
         PRINT_INFO(BLUE "[TIME]: %.4f seconds total (%.1f hz, %.2f ms behind)\n" RESET, time_total, 1.0 / time_total, update_dt);
       }
     }
-    cout<<"no of times it while loop executes is "<<s_count<<endl;
+    // cout<<"no of times it while loop executes is "<<s_count<<endl;
     thread_update_running = false;
   });
 
@@ -477,7 +477,7 @@ void ROS1Visualizer::callback_stereo(const sensor_msgs::ImageConstPtr &msg0, con
 
   // Check if we should drop this image
   // PRINT_DEBUG("Debug_callback_stereo");
-  cout<<"Debug_callback_stereo"<<endl; // sougato_debug
+  // cout<<"Debug_callback_stereo"<<endl; // sougato_debug
   double timestamp = msg0->header.stamp.toSec();
   double time_delta = 1.0 / _app->get_params().track_frequency;
   if (camera_last_timestamp.find(cam_id0) != camera_last_timestamp.end() && timestamp < camera_last_timestamp.at(cam_id0) + time_delta) {
@@ -526,7 +526,7 @@ void ROS1Visualizer::callback_stereo(const sensor_msgs::ImageConstPtr &msg0, con
   std::lock_guard<std::mutex> lck(camera_queue_mtx);
   camera_queue.push_back(message);
   std::sort(camera_queue.begin(), camera_queue.end());
-  cout<<"The size of the camera_queue in callback_stereo:- "<<camera_queue.size()<<endl;
+  // cout<<"The size of the camera_queue in callback_stereo:- "<<camera_queue.size()<<endl;
 }
 
 void ROS1Visualizer::publish_state() {
