@@ -27,9 +27,15 @@
 #include "cam/CamBase.h"
 #include "feat/Feature.h"
 #include "feat/FeatureDatabase.h"
+// sougato
+#include "utils/print.h"
+// end
 
 using namespace ov_core;
-
+// Start timing |sougato
+// declaring some variables local to this c++ file
+boost::posix_time::ptime T1, T2;
+// sougato
 void TrackDescriptor::feed_new_camera(const CameraData &message) {
 
   // Error check that we have all the data
@@ -182,6 +188,9 @@ void TrackDescriptor::feed_monocular(const CameraData &message, size_t msg_id) {
   // std::cout<<"Time for feature DB update ["<<(rT5-rT4) * 1e-6<<"]\n";
   // std::cout<<"Time in total ["<<(rT5-rT1) * 1e-6<<"]\n";
   // std::cout<<"#####Stereo descriptor module end#####\n";
+  // sougato
+  std::cout<<"[TIME-DESC]: "<<(rT3-rT2).total_microseconds() * 1e-6<<" seconds for matching\n";
+  //end
 }
 
 void TrackDescriptor::feed_stereo(const CameraData &message, size_t msg_id_left, size_t msg_id_right) {
@@ -364,6 +373,9 @@ void TrackDescriptor::feed_stereo(const CameraData &message, size_t msg_id_left,
   // std::cout<<"Time for feature DB update ["<<(rT5-rT4) * 1e-6<<"]\n";
   // std::cout<<"Time in total ["<<(rT5-rT1) * 1e-6<<"]\n";
   // std::cout<<"#####Stereo descriptor module end#####\n";
+  // sougato
+  std::cout<<"[TIME-DESC]: "<<(rT3-rT2).total_microseconds() * 1e-6<<" seconds for matching\n";
+  //end  
 }
 
 void TrackDescriptor::perform_detection_monocular(const cv::Mat &img0, const cv::Mat &mask0, std::vector<cv::KeyPoint> &pts0,
@@ -371,7 +383,9 @@ void TrackDescriptor::perform_detection_monocular(const cv::Mat &img0, const cv:
 
   // Assert that we need features
   assert(pts0.empty());
-
+  // Start timing |sougato
+  T1 = boost::posix_time::microsec_clock::local_time();
+  // sougato 
   // Extract our features (use FAST with griding)
   std::vector<cv::KeyPoint> pts0_ext;
   Grider_FAST::perform_griding(img0, mask0, pts0_ext, num_features, grid_x, grid_y, threshold, true);
@@ -379,6 +393,10 @@ void TrackDescriptor::perform_detection_monocular(const cv::Mat &img0, const cv:
   // For all new points, extract their descriptors
   cv::Mat desc0_ext;
   this->orb0->compute(img0, pts0_ext, desc0_ext);
+  // end timing |sougato
+  T2 = boost::posix_time::microsec_clock::local_time();
+  std::cout<<"["<<(T2 - T1) * 1e-6<<"]: seconds for feature detection\n";
+  // sougato 
 
   // Create a 2D occupancy grid for this current image
   // Note that we scale this down, so that each grid point is equal to a set of pixels
@@ -426,6 +444,9 @@ void TrackDescriptor::perform_detection_stereo(const cv::Mat &img0, const cv::Ma
   // Extract our features (use FAST with griding), and their descriptors
   std::vector<cv::KeyPoint> pts0_ext, pts1_ext;
   cv::Mat desc0_ext, desc1_ext;
+  // Start timing |sougato
+  T1 = boost::posix_time::microsec_clock::local_time();
+  // sougato 
   parallel_for_(cv::Range(0, 2), LambdaBody([&](const cv::Range &range) {
                   for (int i = range.start; i < range.end; i++) {
                     bool is_left = (i == 0);
@@ -438,6 +459,10 @@ void TrackDescriptor::perform_detection_stereo(const cv::Mat &img0, const cv::Ma
   // Do matching from the left to the right image
   std::vector<cv::DMatch> matches;
   robust_match(pts0_ext, pts1_ext, desc0_ext, desc1_ext, cam_id0, cam_id1, matches);
+  // end timing |sougato
+  T2 = boost::posix_time::microsec_clock::local_time();
+  std::cout<<"["<<(T2 - T1) * 1e-6<<"]: seconds for feature detection\n";
+  // sougato 
 
   // Create a 2D occupancy grid for this current image
   // Note that we scale this down, so that each grid point is equal to a set of pixels

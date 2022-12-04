@@ -195,6 +195,8 @@ void TrackKLT::feed_monocular(const CameraData &message, size_t msg_id) {
   //  PRINT_DEBUG("[TIME-KLT]: %.4f seconds for feature DB update (%d features)\n", (rT5 - rT4).total_microseconds() * 1e-6,
   //              (int)good_left.size());
   //  PRINT_DEBUG("[TIME-KLT]: %.4f seconds for total\n", (rT5 - rT1).total_microseconds() * 1e-6);
+  std::cout<<"[TIME-KLT]: "<< (rT3 - rT2).total_microseconds() * 1e-6 <<" seconds for detection\n";
+  std::cout<<"[TIME-KLT]: "<< (rT4 - rT3).total_microseconds() * 1e-6 <<" seconds for matching(KLT track between two images, and do RANSAC afterwards)\n";
 }
 
 void TrackKLT::feed_stereo(const CameraData &message, size_t msg_id_left, size_t msg_id_right) {
@@ -386,6 +388,9 @@ void TrackKLT::feed_stereo(const CameraData &message, size_t msg_id_left, size_t
   //  PRINT_DEBUG("[TIME-KLT]: %.4f seconds for feature DB update (%d features)\n", (rT6 - rT5).total_microseconds() * 1e-6,
   //              (int)good_left.size());
   //  PRINT_DEBUG("[TIME-KLT]: %.4f seconds for total\n", (rT6 - rT1).total_microseconds() * 1e-6);
+
+  std::cout<<"[TIME-KLT]: "<< (rT3 - rT2).total_microseconds() * 1e-6 <<" seconds for detection\n";
+  std::cout<<"[TIME-KLT]: "<< (rT4 - rT3).total_microseconds() * 1e-6 <<" seconds for matching(KLT track between two images, and do RANSAC afterwards)\n";
 }
 
 void TrackKLT::perform_detection_monocular(const std::vector<cv::Mat> &img0pyr, const cv::Mat &mask0, std::vector<cv::KeyPoint> &pts0,

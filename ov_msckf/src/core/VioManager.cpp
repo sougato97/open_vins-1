@@ -620,19 +620,20 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   // }
   // PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for re-tri & marg (%d clones in state)\n" RESET, time_marg, (int)state->_clones_IMU.size());
   // modified by sougato 
+
   std::cout<<std::endl<<"************************"<<"START OF THE CYCLE"<<"************************"<<std::endl;
   std::cout<<"\n######## START TRACKING ########\n";
   std::cout<<"["<<time_track<<"]: seconds for tracking\n";
   // for VioManager::feed_measurement_simulation() exection branch
   if (feed_rT1a > rT1){
-    std::cout<<"["<<(feed_rT1a - rT1) * 1e-6<<"]: recreate and re-cast the tracker to our simulation tracker\n";
-    std::cout<<"["<<(rT2 - feed_rT1a) * 1e-6<<"]: Feed our simulation tracker\n";  
+    std::cout<<"["<<(feed_rT1a - rT1).total_microseconds() * 1e-6<<"]: recreate and re-cast the tracker to our simulation tracker\n";
+    std::cout<<"["<<(rT2 - feed_rT1a).total_microseconds() * 1e-6<<"]: Feed our simulation tracker\n";  
   }
   // for VioManager::track_image_and_update() exection branch
   if (track_rT1a > rT1){
-    std::cout<<"["<<(track_rT1b - track_rT1a) * 1e-6<<"]: downsampling time\n";
-    std::cout<<"["<<(track_rT1c - track_rT1b) * 1e-6<<"]: feature tracking time\n";
-    std::cout<<"["<<(rT2 - track_rT1c) * 1e-6<<"]: aruco tracker time\n";
+    std::cout<<"["<<(track_rT1b - track_rT1a).total_microseconds() * 1e-6<<"]: downsampling time\n";
+    std::cout<<"["<<(track_rT1c - track_rT1b).total_microseconds() * 1e-6<<"]: feature tracking time\n";
+    std::cout<<"["<<(rT2 - track_rT1c).total_microseconds() * 1e-6<<"]: aruco tracker time\n";
   }
   std::cout<<"######## END OF TRACKING ########\n\n";
 
@@ -641,17 +642,17 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   std::cout<<"######## END PROPAGATION ########\n\n";
 
   std::cout<<"######## START UPDATE ########\n\n";
-  std::cout<<"["<<(do2_rT3 - do1_rT3) * 1e-6<<"]: seconds for getting all the features\n";
-  std::cout<<"["<<(do4_rT3 - do3_rT3) * 1e-6<<"]: seconds for grabbing all maybe SLAM features (tracks that have reached max length)\n";
-  std::cout<<"["<<(do7_rT3 - do5_rT3) * 1e-6<<"]: seconds for getting all the good SLAM features \n";
-  std::cout<<"["<<(do8_rT3-do7_rT3) * 1e-6<<"]: seconds for segregating old and new SLAM features \n";
+  std::cout<<"["<<(do2_rT3 - do1_rT3).total_microseconds() * 1e-6<<"]: seconds for getting all the features\n";
+  std::cout<<"["<<(do4_rT3 - do3_rT3).total_microseconds() * 1e-6<<"]: seconds for grabbing all maybe SLAM features (tracks that have reached max length)\n";
+  std::cout<<"["<<(do7_rT3 - do5_rT3).total_microseconds() * 1e-6<<"]: seconds for getting all the good SLAM features \n";
+  std::cout<<"["<<(do8_rT3-do7_rT3).total_microseconds() * 1e-6<<"]: seconds for segregating old and new SLAM features \n";
   if(flag == 1){
     std::cout<<"["<<time_msckf<<"]: seconds for INBUILT MSCKF update ("<<(int)featsup_MSCKF.size()<<")\n";
-    std::cout<<"["<<(rT4 - do8_rT3) * 1e-6<<"]: seconds for only MSCKF update ("<<(int)featsup_MSCKF.size()<<")\n";
+    std::cout<<"["<<(rT4 - do8_rT3).total_microseconds() * 1e-6<<"]: seconds for only MSCKF update ("<<(int)featsup_MSCKF.size()<<")\n";
   }
   if (state->_options.max_slam_features > 0) {
-    std::cout<<"["<<time_slam_update<<"]: seconds for SLAM update {new/feats_slam_UPDATE ones goes into this}("<<(int)state->_features_SLAM.size()<<")\n";
-    std::cout<<"["<<time_slam_delay<<"]: seconds for SLAM delayed init {old/feats_slam_DELAYED ones goes into this}("<<(int)feats_slam_DELAYED.size()<<")\n";
+    std::cout<<"["<<time_slam_update <<"]: seconds for SLAM update {new/feats_slam_UPDATE ones goes into this}("<<(int)state->_features_SLAM.size()<<")\n";
+    std::cout<<"["<<time_slam_delay <<"]: seconds for SLAM delayed init {old/feats_slam_DELAYED ones goes into this}("<<(int)feats_slam_DELAYED.size()<<")\n";
   }
   std::cout<<"######## END UPDATE ########\n\n";
 

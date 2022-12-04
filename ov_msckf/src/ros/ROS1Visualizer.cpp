@@ -34,6 +34,8 @@
 using namespace ov_core;
 using namespace ov_type;
 using namespace ov_msckf;
+// declaring some variables local to this c++ file
+boost::posix_time::ptime sougato_t;
 
 ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_ptr<VioManager> app, std::shared_ptr<Simulator> sim)
     : _nh(nh), _app(app), _sim(sim), thread_update_running(false) {
@@ -438,7 +440,11 @@ void ROS1Visualizer::callback_monocular(const sensor_msgs::ImageConstPtr &msg0, 
   // Check if we should drop this image
   double timestamp = msg0->header.stamp.toSec();
   double time_delta = 1.0 / _app->get_params().track_frequency;
+  // sougato_t = boost::posix_time::microsec_clock::local_time();
+  // double soug_t = sougato_t.total_microseconds() * 1e-6;
   if (camera_last_timestamp.find(cam_id0) != camera_last_timestamp.end() && timestamp < camera_last_timestamp.at(cam_id0) + time_delta) {
+    // std::cout<<"Dropping image at timestamp (in sec) "<< timestamp;
+        std::cout<<"Dropping image at timestamp (in sec) ";
     return;
   }
   camera_last_timestamp[cam_id0] = timestamp;
@@ -480,7 +486,11 @@ void ROS1Visualizer::callback_stereo(const sensor_msgs::ImageConstPtr &msg0, con
   // cout<<"Debug_callback_stereo"<<endl; // sougato_debug
   double timestamp = msg0->header.stamp.toSec();
   double time_delta = 1.0 / _app->get_params().track_frequency;
+  // sougato_t = boost::posix_time::microsec_clock::local_time();
+  // double soug_t = sougato_t.total_microseconds() * 1e-6;
   if (camera_last_timestamp.find(cam_id0) != camera_last_timestamp.end() && timestamp < camera_last_timestamp.at(cam_id0) + time_delta) {
+    // sougato
+    std::cout<<"Dropping image at timestamp (in sec) "<< timestamp;
     return;
   }
   camera_last_timestamp[cam_id0] = timestamp;
